@@ -1,0 +1,7 @@
+---
+name: Classes
+version: 0.0.1
+main: Mencoreh\Classes\Main
+api: 5.13.0
+src-namespace-prefix: Mencoreh\Classes
+...

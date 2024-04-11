@@ -1,0 +1,5 @@
+# The message to send to the players who have been archer tagged.
+archer-victim-message: "§eYou have been archer tagged! You will now receive 25% more damage in the next 10 seconds."
+
+# The message to send to the archer when tags someone.
+archer-shooter-message: "§eYou have tagged §2{PLAYER}!"
