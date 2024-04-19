@@ -19,11 +19,15 @@ use pocketmine\item\ItemTypeIds;
 use pocketmine\player\Player;
 use pocketmine\plugin\PluginBase;
 use pocketmine\scheduler\ClosureTask;
+use Mencoreh\Classes\CooldownManager;
+use pocketmine\utils\SingletonTrait;
 
 // Nota: Todos los efectos giveados por ítems deben tener 1min de cd y 10s de uso. Excepto el bard, ese tiene 10s de cd que se comparte con todas las habilidades.
 
 class Main extends PluginBase implements Listener
 {
+    use SingletonTrait;
+    
     private const EFFECT_MAX_DURATION = 2147483647;
     private array $archerTagged = [];
 
@@ -31,6 +35,10 @@ class Main extends PluginBase implements Listener
     {
         $this->getServer()->getPluginManager()->registerEvents($this, $this);
         $this->saveDefaultConfig();
+    }
+
+    public function getCooldownManager(): CooldownManager {
+        return CooldownManager::getInstance();
     }
 
     public function onJoin(PlayerJoinEvent $event): void
@@ -58,8 +66,8 @@ class Main extends PluginBase implements Listener
         // Handlear si está archer taggeado
         if ($victim instanceof Player && isset($this->archerTagged[$victim->getName()])) {
             $tagTime = $this->archerTagged[$victim->getName()];
-            if (time() - $tagTime <= 10) {
-                $event->setBaseDamage($event->getFinalDamage() * 1.25);
+            if (time() - $tagTime <= 15) {
+                $event->setBaseDamage($event->getFinalDamage() * 1.20);
             } else {
                 unset($this->archerTagged[$victim->getName()]);
             }
@@ -85,13 +93,12 @@ class Main extends PluginBase implements Listener
         }
     }
 
-    public function onItemUse(PlayerItemUseEvent $event)
+    public function onItemUse(PlayerItemUseEvent $event): void
     {
         $player = $event->getPlayer();
         $item = $event->getItem();
 
         if ($item->getTypeId() === ItemTypeIds::SUGAR) {
-            $player->sendMessage("Has hecho clic derecho con azúcar!");
             if($this->isFullLeatherArmor($player->getArmorInventory())) {
                 $speed = new EffectInstance(VanillaEffects::SPEED(), 200, 2);
                 $player->getEffects()->add($speed);
@@ -102,15 +109,16 @@ class Main extends PluginBase implements Listener
                 }), 201);
             }
         } else if ($item->getTypeId() === ItemTypeIds::BLAZE_POWDER) {
-            $player->sendMessage("Has hecho clic derecho con polvo de blaze!");
         } else if ($item->getTypeId() === ItemTypeIds::IRON_INGOT) {
-            $player->sendMessage("Has hecho clic derecho con un lingote de hierro!");
         } else if ($item->getTypeId() === ItemTypeIds::FEATHER) {
             if($this->isFullLeatherArmor($player->getArmorInventory())) {
                 $jump = new EffectInstance(VanillaEffects::JUMP_BOOST(), 200, 4);
                 $player->getEffects()->add($jump);
                 $item->setCount($item->getCount() - 1);
                 $player->getInventory()->setItemInHand($item);
+                $this->getScheduler()->scheduleDelayedTask(new ClosureTask(function () use ($player): void {
+                    $this->handleArmorEffects($player);
+                }), 201);
             }
         }
     }
@@ -157,7 +165,6 @@ class Main extends PluginBase implements Listener
 
     private function addArcherEffects(Player $player): void
     {
-        // TODO: Archer tag y que al esnifar azúcar te de speed 3 y que al usar una pluma te de jump 5
         $speed = new EffectInstance(VanillaEffects::SPEED(), self::EFFECT_MAX_DURATION, 1);
         $resistance = new EffectInstance(VanillaEffects::RESISTANCE(), self::EFFECT_MAX_DURATION, 1);
         $player->getEffects()->add($speed);
@@ -176,7 +183,7 @@ class Main extends PluginBase implements Listener
 
     private function addRogueEffects(Player $player): void
     {
-        // TODO: Rogue tag, que al snifar azúcar te de speed 5 y que al usar pluma te de jump 5
+        // TODO: Rogue tag, que al esnifar azúcar te de speed 5 y que al usar pluma te de jump 5
         $speed = new EffectInstance(VanillaEffects::SPEED(), self::EFFECT_MAX_DURATION, 1);
         $resistance = new EffectInstance(VanillaEffects::RESISTANCE(), self::EFFECT_MAX_DURATION, 1);
         $jump = new EffectInstance(VanillaEffects::JUMP_BOOST(), self::EFFECT_MAX_DURATION, 2);
